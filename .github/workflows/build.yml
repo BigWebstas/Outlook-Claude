@@ -16,6 +16,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Find runtime (temporary)
+        shell: pwsh
+        run: |
+          Get-ChildItem "C:\Windows\assembly","C:\Windows\Microsoft.NET\assembly","C:\Program Files","C:\Program Files (x86)" -Recurse -Filter "Microsoft.VisualStudio.Tools.Office.Runtime*.dll" -ErrorAction SilentlyContinue | ForEach-Object { "FOUND " + $_.FullName }
+          "END"
+
       # Builds the classic Outlook add-in with a throwaway signing certificate and checks the Office add-in manifest.
       - name: Build
         shell: pwsh
