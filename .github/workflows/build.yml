@@ -16,11 +16,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Probe runtime sources (temporary)
+      # The VSTO build tasks load the VSTO runtime, which the runner image doesn't install. Visual Studio ships its installer.
+      - name: Install VSTO runtime
         shell: pwsh
         run: |
-          Get-ChildItem C:\ -Recurse -Include '*Tools.Office.Runtime*','VSTOInstaller*','vstoee*','vstor*' -ErrorAction SilentlyContinue | Select-Object -First 30 | ForEach-Object { 'DBG hit ' + $_.FullName }
-          Get-ChildItem 'C:\Program Files (x86)\Microsoft Visual Studio\Installer' -Filter '*.exe' | ForEach-Object { 'DBG inst ' + $_.Name }
+          $installer = Get-ChildItem "${env:ProgramFiles(x86)}\Microsoft SDKs\ClickOnce Bootstrapper\Packages\VSTOR40" -Recurse -Filter vstor_redist.exe | Select-Object -First 1
+          if (-not $installer) { throw "vstor_redist.exe not found in the ClickOnce Bootstrapper packages." }
+          Start-Process $installer.FullName -ArgumentList "/q","/norestart" -Wait
 
       # Builds the classic Outlook add-in with a throwaway signing certificate and checks the Office add-in manifest.
       - name: Build
