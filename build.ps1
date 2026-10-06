@@ -51,7 +51,7 @@ function Find-MSBuild {
         } | Select-Object -First 1
         if ($targets) {
             # ...\v17.0\OfficeTools\Microsoft.VisualStudio.Tools.Office.targets -> ...\v17.0
-            return @{ MSBuild = $msbuild; VSToolsPath = $targets.Directory.Parent.FullName; InstallPath = $vs }
+            return @{ MSBuild = $msbuild; VSToolsPath = $targets.Directory.Parent.FullName }
         }
         $checked += $vs
     }
@@ -59,32 +59,6 @@ function Find-MSBuild {
         "Checked: $($checked -join '; ')`n" +
         "In Visual Studio Installer choose Modify, then tick the 'Office/SharePoint development' workload " +
         "(or the individual component 'Visual Studio Tools for Office (VSTO)'), and run this again.")
-}
-
-# MSBuild can't find the VSTO assemblies the Office build tasks load (they sit in Visual Studio's
-# ReferenceAssemblies folder). Build from a private copy of the Office build files with those assemblies
-# beside them, so nothing in the Visual Studio install is modified.
-function Get-VstoToolsPath($tools) {
-    $refs = Join-Path $tools.InstallPath "Common7\IDE\ReferenceAssemblies\v4.0"
-    if (-not (Test-Path $refs)) { return $tools.VSToolsPath }
-    $work = Join-Path $env:TEMP "ClaudeMailSorter\vstotools"
-    if (Test-Path $work) { Remove-Item $work -Recurse -Force }
-    $officeTools = Join-Path $work "OfficeTools"
-    New-Item -ItemType Directory -Path $officeTools | Out-Null
-    Copy-Item (Join-Path $tools.VSToolsPath "OfficeTools\*") $officeTools
-    Copy-Item (Join-Path $refs "*.dll") $officeTools
-
-    # Three build steps are skipped: they register debugging hooks (Outlook form regions, F5 registration), which
-    # need the VSTO runtime that a build-only machine lacks, or look for Ribbon Designer classes (this add-in builds
-    # its ribbon in code). This script registers the add-in itself.
-    $targetsFile = Join-Path $officeTools "Microsoft.VisualStudio.Tools.Office.targets"
-    $xml = Get-Content $targetsFile -Raw
-    foreach ($task in "RegisterFormRegions", "FindRibbons") {
-        $xml = [regex]::Replace($xml, "(?s)<$task\b.*?</$task>", "")
-    }
-    $xml = $xml -replace "RegisterOfficeAddin;", ""
-    Set-Content $targetsFile $xml -Encoding UTF8
-    return $work
 }
 
 function Get-SigningCertificate {
@@ -104,7 +78,7 @@ function Build-ClassicAddIn {
     $cert = Get-SigningCertificate
 
     Write-Host "Building classic Outlook add-in ($Configuration)..."
-    & $tools.MSBuild $project -restore "/p:Configuration=$Configuration" "/p:VSToolsPath=$(Get-VstoToolsPath $tools)" `
+    & $tools.MSBuild $project -restore "/p:Configuration=$Configuration" "/p:VSToolsPath=$($tools.VSToolsPath)" `
         "/p:SignManifests=true" `
         "/p:ManifestCertificateThumbprint=$($cert.Thumbprint)" "/v:minimal" "/nologo" | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "MSBuild failed (exit code $LASTEXITCODE)." }
