@@ -16,13 +16,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Probe runtime download (temporary)
+      - name: Probe runtime sources (temporary)
         shell: pwsh
         run: |
           curl.exe -sL https://aka.ms/vstor-redist -o r.html
-          Select-String -Path r.html -Pattern "https?://[^\s\"'<>]+" -AllMatches | ForEach-Object { $_.Matches.Value } | Sort-Object -Unique | Where-Object { $_ -match "exe|download|vstor|vsto|redist" } | ForEach-Object { "DBG " + $_ }
-          choco search vsto --limit-output | ForEach-Object { "DBG choco " + $_ }
-          winget search vsto --accept-source-agreements 2>&1 | ForEach-Object { "DBG winget " + $_ }
+          Select-String -Path r.html -Pattern 'https?://\S+' -AllMatches | ForEach-Object { $_.Matches.Value } | Sort-Object -Unique | Where-Object { $_ -match 'exe|vstor|redist' } | ForEach-Object { 'DBG link ' + $_ }
+          $vw = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          & $vw -latest -products * -include packages -format json | Out-File pk.json
+          Select-String -Path pk.json -Pattern '"id": "[^"]*(VSTO|Office)[^"]*"' | ForEach-Object { 'DBG pkg ' + $_.Matches.Value }
 
       # Builds the classic Outlook add-in with a throwaway signing certificate and checks the Office add-in manifest.
       - name: Build
