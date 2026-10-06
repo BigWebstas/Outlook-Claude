@@ -21,6 +21,9 @@ jobs:
         shell: pwsh
         run: |
           Invoke-WebRequest https://aka.ms/vstor-redist -OutFile vstor_redist.exe
+          "DBG size " + (Get-Item vstor_redist.exe).Length
+          "DBG head " + (Get-Content vstor_redist.exe -TotalCount 3 -Encoding Byte -ErrorAction SilentlyContinue | Out-String)
+          "DBG text " + ((Get-Content vstor_redist.exe -TotalCount 5 -ErrorAction SilentlyContinue) -join " | ").Substring(0,200)
           Start-Process .\vstor_redist.exe -ArgumentList "/q","/norestart" -Wait
           Remove-Item vstor_redist.exe
 
