@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Claude Mail Sorter</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@4/lib/msal-browser.min.js"></script>
+  <style>
+    body { font: 14px system-ui, sans-serif; margin: 0; padding: 12px; color: #222; }
+    h1 { font-size: 16px; margin: 0 0 12px; }
+    section { margin-bottom: 16px; }
+    label { display: block; margin: 8px 0 2px; font-weight: 600; }
+    input[type=password], input[type=text], select { width: 100%; box-sizing: border-box; padding: 4px; }
+    label.check { font-weight: normal; display: flex; gap: 6px; align-items: center; }
+    button { padding: 6px 10px; margin: 4px 4px 0 0; cursor: pointer; }
+    button:disabled { cursor: default; }
+    #status { display: flex; align-items: center; gap: 8px; min-height: 22px; margin-top: 8px; }
+    #spinner { width: 16px; height: 16px; border: 3px solid #ddd; border-top-color: #d97757;
+      border-radius: 50%; animation: spin 1s linear infinite; }
+    #spinner[hidden] { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #log { margin: 8px 0 0; padding-left: 18px; font-size: 12px; max-height: 160px; overflow: auto; }
+    #log .error { color: #c01c28; }
+  </style>
+</head>
+<body>
+  <h1>Claude Mail Sorter</h1>
+
+  <section>
+    <button id="sort-selected">Sort this email</button>
+    <label for="folder">Folder</label>
+    <select id="folder"><option value="">Loading folders…</option></select>
+    <button id="sort-folder" disabled>Sort folder</button>
+    <div id="status"><div id="spinner" hidden></div><span id="status-text"></span></div>
+    <ul id="log"></ul>
+  </section>
+
+  <section>
+    <label for="api-key">Anthropic API key</label>
+    <input type="password" id="api-key" autocomplete="off">
+    <label for="model">Model</label>
+    <input type="text" id="model" placeholder="claude-haiku-4-5">
+    <label class="check"><input type="checkbox" id="create-categories"> Let Claude create new categories</label>
+  </section>
+
+  <script src="taskpane.js"></script>
+</body>
+</html>
