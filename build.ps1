@@ -80,7 +80,7 @@ function Build-ClassicAddIn {
     Write-Host "Building classic Outlook add-in ($Configuration)..."
     & $tools.MSBuild $project -restore "/p:Configuration=$Configuration" "/p:VSToolsPath=$($tools.VSToolsPath)" `
         "/p:SignManifests=true" `
-        "/p:ManifestCertificateThumbprint=$($cert.Thumbprint)" "/v:minimal" "/nologo"
+        "/p:ManifestCertificateThumbprint=$($cert.Thumbprint)" "/v:minimal" "/nologo" | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "MSBuild failed (exit code $LASTEXITCODE)." }
 
     $out = Join-Path $vstoDir "bin\$Configuration"
