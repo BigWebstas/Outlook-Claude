@@ -16,6 +16,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Find VSTO assemblies (temporary)
+        shell: pwsh
+        run: |
+          foreach ($root in "C:\Windows\Microsoft.NET\assembly","C:\Windows\assembly","C:\Program Files (x86)\Microsoft Visual Studio","C:\Program Files\Microsoft Visual Studio","C:\Program Files (x86)\Common Files\Microsoft Shared\VSTO") {
+            if (Test-Path $root) { Get-ChildItem $root -Recurse -Include "Microsoft.Office.Tools*.dll","Microsoft.VisualStudio.Tools.Applications.Runtime.dll","office.dll" -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName } }
+          }
+
       # Builds the classic Outlook add-in with a throwaway signing certificate and checks the Office add-in manifest.
       - name: Build
         shell: pwsh
