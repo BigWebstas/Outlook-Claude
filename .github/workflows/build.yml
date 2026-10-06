@@ -16,11 +16,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Find hosting assembly (temporary)
+      - name: Show targets (temporary)
         shell: pwsh
         run: |
-          Get-ChildItem "C:\Windows\assembly","C:\Windows\Microsoft.NET\assembly","C:\Program Files","C:\Program Files (x86)" -Recurse -Filter "Microsoft.VisualStudio.Tools.Applications.Hosting*.dll" -ErrorAction SilentlyContinue | ForEach-Object { "FOUND " + $_.FullName }
-          Get-ChildItem "C:\Program Files (x86)\Common Files\Microsoft Shared\VSTO" -ErrorAction SilentlyContinue | ForEach-Object { "VSTO " + $_.FullName }
+          $t = Get-ChildItem "C:\Program Files\Microsoft Visual Studio\18\Enterprise\MSBuild\Microsoft\VisualStudio\v18.0\OfficeTools" -Filter "Microsoft.VisualStudio.Tools.Office.targets"
+          $lines = Get-Content $t.FullName
+          for ($i = 130; $i -lt 190 -and $i -lt $lines.Count; $i++) { "TGT{0}: {1}" -f ($i+1), $lines[$i] }
+          Get-ChildItem $t.Directory | ForEach-Object { "DIR " + $_.Name }
 
       # Builds the classic Outlook add-in with a throwaway signing certificate and checks the Office add-in manifest.
       - name: Build
