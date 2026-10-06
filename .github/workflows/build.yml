@@ -19,11 +19,8 @@ jobs:
       - name: Probe runtime sources (temporary)
         shell: pwsh
         run: |
-          curl.exe -sL https://aka.ms/vstor-redist -o r.html
-          Select-String -Path r.html -Pattern 'https?://\S+' -AllMatches | ForEach-Object { $_.Matches.Value } | Sort-Object -Unique | Where-Object { $_ -match 'exe|vstor|redist' } | ForEach-Object { 'DBG link ' + $_ }
-          $vw = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
-          & $vw -latest -products * -include packages -format json | Out-File pk.json
-          Select-String -Path pk.json -Pattern '"id": "[^"]*(VSTO|Office)[^"]*"' | ForEach-Object { 'DBG pkg ' + $_.Matches.Value }
+          Get-ChildItem C:\ -Recurse -Include '*Tools.Office.Runtime*','VSTOInstaller*','vstoee*','vstor*' -ErrorAction SilentlyContinue | Select-Object -First 30 | ForEach-Object { 'DBG hit ' + $_.FullName }
+          Get-ChildItem 'C:\Program Files (x86)\Microsoft Visual Studio\Installer' -Filter '*.exe' | ForEach-Object { 'DBG inst ' + $_.Name }
 
       # Builds the classic Outlook add-in with a throwaway signing certificate and checks the Office add-in manifest.
       - name: Build
