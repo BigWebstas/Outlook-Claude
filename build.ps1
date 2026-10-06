@@ -61,7 +61,7 @@ function Find-MSBuild {
         "(or the individual component 'Visual Studio Tools for Office (VSTO)'), and run this again.")
 }
 
-# MSBuild can't find the VSTO runtime assemblies the Office build tasks load (they sit in Visual Studio's
+# MSBuild can't find the VSTO assemblies the Office build tasks load (they sit in Visual Studio's
 # ReferenceAssemblies folder). Build from a private copy of the Office build files with those assemblies
 # beside them, so nothing in the Visual Studio install is modified.
 function Get-VstoToolsPath($tools) {
@@ -73,6 +73,14 @@ function Get-VstoToolsPath($tools) {
     New-Item -ItemType Directory -Path $officeTools | Out-Null
     Copy-Item (Join-Path $tools.VSToolsPath "OfficeTools\*") $officeTools
     Copy-Item (Join-Path $refs "*.dll") $officeTools
+
+    # Two build steps only register debugging hooks (Outlook form regions, F5 registration) and need the VSTO
+    # runtime, which isn't installed on a build-only machine. this script registers the add-in itself.
+    $targetsFile = Join-Path $officeTools "Microsoft.VisualStudio.Tools.Office.targets"
+    $xml = Get-Content $targetsFile -Raw
+    $xml = [regex]::Replace($xml, "(?s)<RegisterFormRegions\b.*?</RegisterFormRegions>", "")
+    $xml = $xml -replace "RegisterOfficeAddin;", ""
+    Set-Content $targetsFile $xml -Encoding UTF8
     return $work
 }
 

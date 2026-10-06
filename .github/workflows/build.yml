@@ -16,17 +16,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # The build tasks load the VSTO runtime, which the runner image doesn't include.
-      - name: Install VSTO runtime
-        shell: pwsh
-        run: |
-          Invoke-WebRequest https://aka.ms/vstor-redist -OutFile vstor_redist.exe
-          "DBG size " + (Get-Item vstor_redist.exe).Length
-          "DBG head " + (Get-Content vstor_redist.exe -TotalCount 3 -Encoding Byte -ErrorAction SilentlyContinue | Out-String)
-          "DBG text " + ((Get-Content vstor_redist.exe -TotalCount 5 -ErrorAction SilentlyContinue) -join " | ").Substring(0,200)
-          Start-Process .\vstor_redist.exe -ArgumentList "/q","/norestart" -Wait
-          Remove-Item vstor_redist.exe
-
       # Builds the classic Outlook add-in with a throwaway signing certificate and checks the Office add-in manifest.
       - name: Build
         shell: pwsh
