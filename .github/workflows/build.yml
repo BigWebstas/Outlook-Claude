@@ -16,11 +16,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Find runtime (temporary)
+      # The build tasks load the VSTO runtime, which the runner image doesn't include.
+      - name: Install VSTO runtime
         shell: pwsh
         run: |
-          Get-ChildItem "C:\Windows\assembly","C:\Windows\Microsoft.NET\assembly","C:\Program Files","C:\Program Files (x86)" -Recurse -Filter "Microsoft.VisualStudio.Tools.Office.Runtime*.dll" -ErrorAction SilentlyContinue | ForEach-Object { "FOUND " + $_.FullName }
-          "END"
+          Invoke-WebRequest https://aka.ms/vstor-redist -OutFile vstor_redist.exe
+          Start-Process .\vstor_redist.exe -ArgumentList "/q","/norestart" -Wait
+          Remove-Item vstor_redist.exe
 
       # Builds the classic Outlook add-in with a throwaway signing certificate and checks the Office add-in manifest.
       - name: Build
