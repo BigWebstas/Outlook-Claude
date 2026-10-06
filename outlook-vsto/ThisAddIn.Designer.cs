@@ -5,8 +5,6 @@ namespace ClaudeMailSorter
     [global::System.Security.Permissions.PermissionSetAttribute(global::System.Security.Permissions.SecurityAction.Demand, Name = "FullTrust")]
     public sealed partial class ThisAddIn : Microsoft.Office.Tools.AddInBase
     {
-        internal Microsoft.Office.Tools.CustomTaskPaneCollection CustomTaskPanes;
-        internal Microsoft.Office.Tools.SmartTagCollection VstoSmartTags;
         internal Microsoft.Office.Interop.Outlook.Application Application;
 
         public ThisAddIn(global::Microsoft.Office.Tools.Outlook.Factory factory, global::System.IServiceProvider serviceProvider)
@@ -22,7 +20,6 @@ namespace ClaudeMailSorter
                 typeof(Microsoft.Office.Interop.Outlook.Application), "Application");
             Globals.ThisAddIn = this;
             global::System.Windows.Forms.Application.EnableVisualStyles();
-            this.InitializeControls();
         }
 
         protected override void FinishInitialization()
@@ -33,35 +30,8 @@ namespace ClaudeMailSorter
 
         protected override void InitializeDataBindings()
         {
-            this.BeginInitialization();
-            this.EndInitialization();
-        }
-
-        private void BeginInitialization()
-        {
             this.BeginInit();
-            this.CustomTaskPanes.BeginInit();
-            this.VstoSmartTags.BeginInit();
-        }
-
-        private void EndInitialization()
-        {
-            this.VstoSmartTags.EndInit();
-            this.CustomTaskPanes.EndInit();
             this.EndInit();
-        }
-
-        private void InitializeControls()
-        {
-            this.CustomTaskPanes = Globals.Factory.CreateCustomTaskPaneCollection(null, null, "CustomTaskPanes", "CustomTaskPanes", this);
-            this.VstoSmartTags = Globals.Factory.CreateSmartTagCollection(null, null, "VstoSmartTags", "VstoSmartTags", this);
-        }
-
-        protected override void OnShutdown()
-        {
-            this.VstoSmartTags.Dispose();
-            this.CustomTaskPanes.Dispose();
-            base.OnShutdown();
         }
     }
 

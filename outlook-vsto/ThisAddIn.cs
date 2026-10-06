@@ -16,6 +16,7 @@ namespace ClaudeMailSorter
         const int StartupSweepDelayMs = 60 * 1000;
         const int FolderConfirmThreshold = 25;
         const string Title = "Claude Mail Sorter";
+        static readonly string[] StarterFolders = { "Notifications", "OTP", "Receipts", "Newsletters", "Finance", "Travel" };
 
         // Outlook's object model only works on the main thread, so every task runs there, one at a time.
         // That keeps bursts of new mail under API rate limits and stops the processed list being written twice.
@@ -44,6 +45,7 @@ namespace ClaudeMailSorter
             processed = new ProcessedStore();
             sorter = new Sorter(settings);
             WatchInboxes();
+            Application.OptionsPagesAdd += OnOptionsPagesAdd;
 
             if (settings.SortOnStartup)
             {
@@ -60,6 +62,9 @@ namespace ClaudeMailSorter
         }
 
         void ThisAddIn_Shutdown(object sender, EventArgs e) { }
+
+        // Adds the settings page to File > Options.
+        void OnOptionsPagesAdd(Outlook.PropertyPages pages) => pages.Add(new SettingsPanel(settings, CreateStarterFolders, saveOnChange: true), Title);
 
         void WatchInboxes()
         {
@@ -120,7 +125,26 @@ namespace ClaudeMailSorter
 
         public void ShowSettings()
         {
-            using (var form = new SettingsForm(settings)) form.ShowDialog();
+            using (var form = new SettingsForm(settings, CreateStarterFolders)) form.ShowDialog();
+        }
+
+        // Creates the starter folders next to the Inbox of the default mailbox, skipping any that already exist.
+        void CreateStarterFolders()
+        {
+            try
+            {
+                var folders = Application.Session.DefaultStore.GetRootFolder().Folders;
+                var existing = folders.Cast<Outlook.MAPIFolder>().Select(f => f.Name).ToList();
+                var added = StarterFolders.Where(n => !existing.Contains(n, StringComparer.OrdinalIgnoreCase)).ToList();
+                foreach (var name in added) folders.Add(name, Outlook.OlDefaultFolders.olFolderInbox);
+                MessageBox.Show(added.Count == 0
+                    ? "All the starter folders already exist."
+                    : "Created: " + string.Join(", ", added), Title);
+            }
+            catch (COMException e)
+            {
+                MessageBox.Show("Could not create the folders: " + e.Message, Title);
+            }
         }
 
         // --- Work queue ---
