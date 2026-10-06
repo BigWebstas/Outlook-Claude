@@ -16,14 +16,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Show targets (temporary)
-        shell: pwsh
-        run: |
-          $t = Get-ChildItem "C:\Program Files\Microsoft Visual Studio\18\Enterprise\MSBuild\Microsoft\VisualStudio\v18.0\OfficeTools" -Filter "Microsoft.VisualStudio.Tools.Office.targets"
-          $lines = Get-Content $t.FullName
-          for ($i = 130; $i -lt 190 -and $i -lt $lines.Count; $i++) { "TGT{0}: {1}" -f ($i+1), $lines[$i] }
-          Get-ChildItem $t.Directory | ForEach-Object { "DIR " + $_.Name }
-
       # Builds the classic Outlook add-in with a throwaway signing certificate and checks the Office add-in manifest.
       - name: Build
         shell: pwsh
