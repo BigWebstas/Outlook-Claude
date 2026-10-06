@@ -16,6 +16,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Probe runtime download (temporary)
+        shell: pwsh
+        run: |
+          curl.exe -sIL https://aka.ms/vstor-redist | Select-String -Pattern "^(HTTP|location|content-type|content-length)" | ForEach-Object { "DBG " + $_.Line }
+          curl.exe -sL https://aka.ms/vstor-redist -o r.bin
+          "DBG size " + (Get-Item r.bin).Length
+          "DBG hex " + ((Format-Hex r.bin -Count 16 | Out-String) -replace "\s+"," ")
+
       # Builds the classic Outlook add-in with a throwaway signing certificate and checks the Office add-in manifest.
       - name: Build
         shell: pwsh
