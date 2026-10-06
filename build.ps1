@@ -30,21 +30,35 @@ $project = Join-Path $vstoDir "ClaudeMailSorter.csproj"
 $certSubject = "CN=ClaudeMailSorter"
 $addInName = "ClaudeMailSorter"
 
+# Returns MSBuild.exe and the folder holding OfficeTools\Microsoft.VisualStudio.Tools.Office.targets.
+# Checks every Visual Studio install, since the newest one may be a Build Tools install without the Office workload.
 function Find-MSBuild {
     $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
     if (-not (Test-Path $vswhere)) {
         throw "Visual Studio not found. Install Visual Studio (Community) or Build Tools with the 'Office/SharePoint development' workload."
     }
-    $vs = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
-    if (-not $vs) { throw "No Visual Studio installation with MSBuild found." }
-    $msbuild = Join-Path $vs "MSBuild\Current\Bin\MSBuild.exe"
-    if (-not (Test-Path $msbuild)) { throw "MSBuild not found at $msbuild" }
-    $targets = Get-ChildItem (Join-Path $vs "MSBuild\Microsoft\VisualStudio") -Recurse -Filter "Microsoft.VisualStudio.Tools.Office.targets" -ErrorAction SilentlyContinue |
-        Select-Object -First 1
-    if (-not $targets) {
-        throw "The Office/SharePoint development workload is missing. Add it in Visual Studio Installer, then run this again."
+    $installs = @(& $vswhere -all -products * -requires Microsoft.Component.MSBuild -property installationPath)
+    if (-not $installs) { throw "No Visual Studio installation with MSBuild found." }
+
+    $checked = @()
+    foreach ($vs in $installs) {
+        $msbuild = Join-Path $vs "MSBuild\Current\Bin\MSBuild.exe"
+        if (-not (Test-Path $msbuild)) { continue }
+        $searchRoots = @((Join-Path $vs "MSBuild\Microsoft\VisualStudio"),
+                         (Join-Path ${env:ProgramFiles(x86)} "MSBuild\Microsoft\VisualStudio"))
+        $targets = $searchRoots | Where-Object { Test-Path $_ } | ForEach-Object {
+            Get-ChildItem $_ -Recurse -Filter "Microsoft.VisualStudio.Tools.Office.targets" -ErrorAction SilentlyContinue
+        } | Select-Object -First 1
+        if ($targets) {
+            # ...\v17.0\OfficeTools\Microsoft.VisualStudio.Tools.Office.targets -> ...\v17.0
+            return @{ MSBuild = $msbuild; VSToolsPath = $targets.Directory.Parent.FullName }
+        }
+        $checked += $vs
     }
-    return $msbuild
+    throw ("Found Visual Studio but not the VSTO build files (Microsoft.VisualStudio.Tools.Office.targets).`n" +
+        "Checked: $($checked -join '; ')`n" +
+        "In Visual Studio Installer choose Modify, then tick the 'Office/SharePoint development' workload " +
+        "(or the individual component 'Visual Studio Tools for Office (VSTO)'), and run this again.")
 }
 
 function Get-SigningCertificate {
@@ -60,11 +74,12 @@ function Get-SigningCertificate {
 }
 
 function Build-ClassicAddIn {
-    $msbuild = Find-MSBuild
+    $tools = Find-MSBuild
     $cert = Get-SigningCertificate
 
     Write-Host "Building classic Outlook add-in ($Configuration)..."
-    & $msbuild $project -restore "/p:Configuration=$Configuration" "/p:SignManifests=true" `
+    & $tools.MSBuild $project -restore "/p:Configuration=$Configuration" "/p:VSToolsPath=$($tools.VSToolsPath)" `
+        "/p:SignManifests=true" `
         "/p:ManifestCertificateThumbprint=$($cert.Thumbprint)" "/v:minimal" "/nologo"
     if ($LASTEXITCODE -ne 0) { throw "MSBuild failed (exit code $LASTEXITCODE)." }
 
