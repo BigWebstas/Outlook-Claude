@@ -74,11 +74,14 @@ function Get-VstoToolsPath($tools) {
     Copy-Item (Join-Path $tools.VSToolsPath "OfficeTools\*") $officeTools
     Copy-Item (Join-Path $refs "*.dll") $officeTools
 
-    # Two build steps only register debugging hooks (Outlook form regions, F5 registration) and need the VSTO
-    # runtime, which isn't installed on a build-only machine. this script registers the add-in itself.
+    # Three build steps are skipped: they register debugging hooks (Outlook form regions, F5 registration), which
+    # need the VSTO runtime that a build-only machine lacks, or look for Ribbon Designer classes (this add-in builds
+    # its ribbon in code). This script registers the add-in itself.
     $targetsFile = Join-Path $officeTools "Microsoft.VisualStudio.Tools.Office.targets"
     $xml = Get-Content $targetsFile -Raw
-    $xml = [regex]::Replace($xml, "(?s)<RegisterFormRegions\b.*?</RegisterFormRegions>", "")
+    foreach ($task in "RegisterFormRegions", "FindRibbons") {
+        $xml = [regex]::Replace($xml, "(?s)<$task\b.*?</$task>", "")
+    }
     $xml = $xml -replace "RegisterOfficeAddin;", ""
     Set-Content $targetsFile $xml -Encoding UTF8
     return $work
