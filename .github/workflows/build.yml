@@ -16,11 +16,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Probe bootstrapper (temporary)
+      # The VSTO build tasks load the VSTO runtime, which the runner image doesn't install.
+      # The link is the one in Visual Studio's own VSTOR40 bootstrapper package.
+      - name: Install VSTO runtime
         shell: pwsh
         run: |
-          Get-ChildItem "${env:ProgramFiles(x86)}\Microsoft SDKs\ClickOnce Bootstrapper\Packages\VSTOR40" -Recurse | ForEach-Object { 'DBG file ' + $_.FullName + ' ' + $_.Length }
-          Get-ChildItem "${env:ProgramFiles(x86)}\Microsoft SDKs\ClickOnce Bootstrapper\Packages\VSTOR40" -Recurse -Filter *.xml | ForEach-Object { Select-String -Path $_.FullName -Pattern 'http|PackageFile|HomeSite' | ForEach-Object { 'DBG xml ' + $_.Line.Trim() } }
+          curl.exe -sSL "https://go.microsoft.com/fwlink/?LinkId=158918" -o vstor_redist.exe
+          $head = [System.IO.File]::ReadAllBytes("vstor_redist.exe")[0..1]
+          if ([System.Text.Encoding]::ASCII.GetString($head) -ne "MZ") { throw "The VSTO runtime download is not an installer." }
+          $p = Start-Process .\vstor_redist.exe -ArgumentList "/q","/norestart" -Wait -PassThru
+          "VSTO runtime installer exit code: " + $p.ExitCode
+          Remove-Item vstor_redist.exe
 
       # Builds the classic Outlook add-in with a throwaway signing certificate and checks the Office add-in manifest.
       - name: Build
