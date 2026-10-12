@@ -1,3 +1,6 @@
 bin/
 obj/
 node_modules/
+GEMINI.md
+.idea/
+CLAUDE.md
